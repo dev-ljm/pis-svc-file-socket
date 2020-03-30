@@ -1,0 +1,38 @@
+<configuration>
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+    <appender name="privateLogAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH:-C:/works/logs-file-socket}/private.default.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH:-C:/works/logs-file-socket}/private.default.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%replace(%msg){'\n', ' '}%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="pis.socket" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="privateLogAppender" />
+    </logger>
+
+    <logger name="io.netty" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="privateLogAppender" />
+    </logger>
+
+    <logger name="org.springframework" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="privateLogAppender" />
+    </logger>
+
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="privateLogAppender" />
+    </root>
+
+</configuration>
