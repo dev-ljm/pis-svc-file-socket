@@ -1,5 +1,6 @@
 package pis.socket.svc.dto;
 
+import io.netty.buffer.ByteBuf;
 import lombok.*;
 
 @Getter
@@ -12,5 +13,6 @@ public class Message {
     private String msgId;
     private String flag;
     private String carNo;
+    private String fileName;
 
 }
