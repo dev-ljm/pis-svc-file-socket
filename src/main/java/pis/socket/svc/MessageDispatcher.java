@@ -2,6 +2,7 @@ package pis.socket.svc;
 
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import pis.socket.svc.dto.Message;
 import pis.socket.svc.event.FileDownloadEvent;
@@ -19,6 +20,8 @@ public class MessageDispatcher {
     @Resource
     private FileDownloadEvent fileDownloadEvent;
 
+
+    @Async
     public Message dispatch(ChannelHandlerContext ctx, Message message) {
 
         Message result = new Message();

@@ -9,6 +9,10 @@ import pis.socket.svc.dto.Message;
 public class FileDownloadEvent implements MessageEvent {
     @Override
     public Message fire(Message message) {
+
+        System.out.println("FileDownloadEvent fire!!!! ");
+
+
         return null;
     }
 }
