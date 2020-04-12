@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pis.socket.svc.mapper.EnteringCarMapper">
+
+    <select id="evalDup" parameterType="pis.socket.svc.dto.EnteringCarDto" resultType="int">
+        SELECT /* pis.socket.svc.mapper.EnteringCarMapper.evalDup || hugh.l 2020.04.12 */
+            COUNT(0) AS CNT
+        FROM PISDS.INCAR
+        WHERE 1 = 1
+        AND CAR_NO = #{car_no}
+        AND INCAR_STATE_CLS_CD = '10'
+    </select>
+
+    <update id="updateCarImage" parameterType="pis.socket.svc.dto.EnteringCarDto">
+        UPDATE PISDS.INCAR /* pis.socket.svc.mapper.EnteringCarMapper.updateCarImage || hugh.l 2020.04.12 */
+        SET INCAR_IMG_PATH = #{incar_img_path}
+        , UPDT_DATE = #{updt_date}
+        , UPDTR_ID = #{updtr_id}
+        WHERE 1 = 1
+        AND CAR_NO = #{car_no}
+        AND INCAR_STATE_CLS_CD = '10'
+    </update>
+
+    <select id="findCarImage" parameterType="pis.socket.svc.dto.EnteringCarDto" resultType="pis.socket.svc.dto.EnteringCarDto">
+        SELECT /* pis.socket.svc.mapper.EnteringCarMapper.findCarImage || hugh.l 2020.04.12 */
+              INCAR_SEQ
+            , INCAR_DATE
+            , STATION_ID
+            , OPER_AREA_ID
+            , OPER_ZONE_ID
+            , OPER_BLOCK_ID
+            , CAR_NO
+            , INCAR_IMG_PATH
+        FROM PISDS.INCAR
+        WHERE 1 = 1
+        AND CAR_NO = #{car_no}
+        AND INCAR_STATE_CLS_CD = '10'
+        ORDER BY INCAR_DATE DESC
+        LIMIT 1
+    </select>
+
+
+</mapper>

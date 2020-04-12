@@ -13,6 +13,12 @@ public class Message {
     private String msgId;
     private String flag;
     private String carNo;
-    private String fileName;
+    private String imageName;
+    private String linkDir;
+    private String fileDir;
+    private String imageType;
+    private String imageDateDir;
+
+    private String downloadImagePath;
 
 }
