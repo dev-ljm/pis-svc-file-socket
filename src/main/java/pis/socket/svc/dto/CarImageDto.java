@@ -10,9 +10,10 @@ import lombok.*;
 @AllArgsConstructor
 public class CarImageDto {
 
-    private String baseDir;
+    private String fileDir;
     private String baseUploadDir;
     private String baseDownloadDir;
-    private String imageType;
+    private String fileType;
+    private String linkDir;
 
 }

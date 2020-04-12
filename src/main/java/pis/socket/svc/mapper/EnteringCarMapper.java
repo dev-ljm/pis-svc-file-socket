@@ -1,8 +1,10 @@
-package pis.socket.svc.service;
+package pis.socket.svc.mapper;
 
+import pis.socket.common.MariaDB;
 import pis.socket.svc.dto.EnteringCarDto;
 
-public interface EnteringCarService {
+@MariaDB
+public interface EnteringCarMapper {
     int evalDup(EnteringCarDto enteringCar);
     int updateCarImage(EnteringCarDto enteringCar);
     EnteringCarDto findCarImage(EnteringCarDto enteringCar);

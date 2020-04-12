@@ -10,6 +10,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -39,11 +40,14 @@ public class FileUploaderServer {
     @Value("${worker.thread.count}")
     private int workerCount;
 
-    @Value("${car.image.base.dir}")
-    private String baseDir;
+    @Value("${car.image.file.dir}")
+    private String fileDir;
 
-    @Value("${car.image.type}")
-    private String carImageType;
+    @Value("${car.image.link.dir}")
+    private String linkDir;
+
+    @Value("${car.image.file.type}")
+    private String fileType;
 
     @Resource
     private MessageDispatcher messageDispatcher;
@@ -51,8 +55,9 @@ public class FileUploaderServer {
     public void start() {
 
         CarImageDto carImage = CarImageDto.builder()
-                .imageType(this.carImageType)
-                .baseDir(this.baseDir)
+                .fileType(this.fileType)
+                .fileDir(this.fileDir)
+                .linkDir(this.linkDir)
                 .build();
 
         EventLoopGroup bossGroup = new NioEventLoopGroup(bossCount);
@@ -65,6 +70,7 @@ public class FileUploaderServer {
                         @Override
                         protected void initChannel(SocketChannel channel) throws Exception {
                             ChannelPipeline p = channel.pipeline();
+                            p.addLast(new ChunkedWriteHandler());
                             p.addLast(new FileUploaderHandler(carImage, messageDispatcher));
                         }
                     });

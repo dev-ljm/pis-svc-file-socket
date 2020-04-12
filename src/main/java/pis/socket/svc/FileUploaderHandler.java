@@ -1,9 +1,14 @@
 package pis.socket.svc;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.DefaultChannelGroup;
+import io.netty.util.concurrent.GlobalEventExecutor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import pis.socket.svc.dto.CarImageDto;
 import pis.socket.svc.dto.Message;
 
@@ -12,27 +17,23 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
 public class FileUploaderHandler  extends ChannelInboundHandlerAdapter {
 
-    private static final MessageDispatcher serviceDispatcher = new MessageDispatcher();
-
-    private int idx;
-
     private CarImageDto carImage;
-    private String baseDir;
-    private String fileName;
     private String msgId;
+    private File file;
 
     private MessageDispatcher messageDispatcher;
+    static final ChannelGroup channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
 
     public FileUploaderHandler(CarImageDto carImage, MessageDispatcher messageDispatcher) {
         this.carImage = carImage;
-        this.baseDir = carImage.getBaseDir();
         this.messageDispatcher = messageDispatcher;
     }
 
@@ -40,70 +41,97 @@ public class FileUploaderHandler  extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ByteBuf byteBuf = (ByteBuf) msg;
 
-        if(idx == 0) {
-            System.out.println("Starting....");
+        Channel channel = ctx.channel();
+        if (!channelGroup.contains(channel)) { // 초기진입
 
             int copyLength = 22;
             int msgIdx = 0;
-            ByteBuf carInfo = byteBuf.copy( + msgIdx, copyLength);
+            ByteBuf carInfo = byteBuf.copy(msgIdx, copyLength);
 
-            this.msgId = carInfo.copy( + msgIdx++, 1).toString(Charset.defaultCharset());
-            String flag = carInfo.copy( + msgIdx++, 1).toString(Charset.defaultCharset());
-            String carNo = carInfo.copy( + msgIdx++, 20).toString(Charset.defaultCharset());
+            this.msgId = carInfo.copy(msgIdx++, 1).toString(Charset.defaultCharset());
+            String flag = carInfo.copy(msgIdx++, 1).toString(Charset.defaultCharset());
+            String carNo = carInfo.copy(msgIdx++, 20).toString(Charset.defaultCharset());
+            carNo = StringUtils.deleteWhitespace((StringUtils.trimToEmpty(carNo)).replaceAll("@", "").toUpperCase());
 
-            // 입차 이미지파일
-            LocalDateTime currentDateTime = LocalDateTime.now();
-            String format = currentDateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+            Message message = null;
+            if("A".equals(this.msgId)) {
+                // 입차 이미지파일
+                LocalDateTime currentLocalDateTime = LocalDateTime.now();
+                String imageName = currentLocalDateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 
-            // 차량번호로 입차정보를
-            StringBuilder carImageFileName = new StringBuilder(this.baseDir);
-            carImageFileName.append(flag).append("/");
-            carImageFileName.append(carNo + "_" + format).append(".").append(this.carImage.getImageType());
+                LocalDate currentLocalDate = LocalDate.now();
+                String imageDateDir = currentLocalDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-            fileName = carImageFileName.toString();
+                // 차량번호로 입차정보를
+                StringBuilder tempImageDir = new StringBuilder(this.carImage.getFileDir());
+                tempImageDir.append(flag).append("/");
+                tempImageDir.append(imageDateDir).append("/");
+                String imageDir = tempImageDir.toString();
 
-            Message message = Message.builder()
-                    .msgId(msgId)
-                    .flag(flag)
-                    .carNo(carNo)
-                    .fileName(fileName)
-                    .build();
+                File fileDir = new File(imageDir.toString());
+                if (!fileDir.exists()) {
+                    fileDir.mkdir();
+                }
 
-            byteBuf.skipBytes(copyLength);
+                String fileName = imageDir + imageName + "." + this.carImage.getFileType();
+
+                this.file = new File(fileName);
+                if (!this.file.exists()) {
+                    this.file.createNewFile();
+                }
+
+                message = Message.builder()
+                        .msgId(this.msgId)
+                        .flag(flag)
+                        .carNo(carNo)
+                        .imageName(imageName)
+                        .imageDateDir(imageDateDir)
+                        .fileDir(this.carImage.getFileDir())
+                        .linkDir(this.carImage.getLinkDir())
+                        .imageType(this.carImage.getFileType())
+                        .build();
+
+                byteBuf.skipBytes(copyLength);
+            } else {
+                message = Message.builder()
+                        .msgId(this.msgId)
+                        .flag(flag)
+                        .carNo(carNo)
+                        .fileDir(this.carImage.getFileDir())
+                        .linkDir(this.carImage.getLinkDir())
+                        .build();
+            }
 
 
             // 비동기 호출
             this.messageDispatcher.dispatch(ctx, message);
 
-        }
+            channelGroup.add(channel);
+        } else {
 
-        if("A".equals(this.msgId)) {
-            // 파일 업로드 전문인 경우!
-            File file = new File(fileName);
+            if("A".equals(this.msgId)) {
+                // 파일 업로드 전문인 경우!
 
-            if (!file.exists()) {
-                file.createNewFile();
+                RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "rw");
+                FileChannel fileChannel = randomAccessFile.getChannel();
+
+                ByteBuffer byteBuffer = byteBuf.nioBuffer();
+                while (byteBuffer.hasRemaining()) {
+                    fileChannel.position(this.file.length());
+                    fileChannel.write(byteBuffer);
+                }
+
+                byteBuf.release();
+                fileChannel.close();
+                randomAccessFile.close();
+            } else if("B".equals(this.msgId)) {
+                // ignore!!
+                log.debug("ignore!!");
             }
 
-            RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
-            FileChannel fileChannel = randomAccessFile.getChannel();
 
-            ByteBuffer byteBuffer = byteBuf.nioBuffer();
-            while (byteBuffer.hasRemaining()) {
-                fileChannel.position(file.length());
-                fileChannel.write(byteBuffer);
-            }
-
-            byteBuf.release();
-            fileChannel.close();
-            randomAccessFile.close();
-        } else if("B".equals(this.msgId)) {
-            // ignore!!
-            log.debug("ignore!!");
         }
 
-
-        idx++;
     }
 
     @Override
