@@ -5,6 +5,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.stream.ChunkedFile;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import pis.socket.svc.dto.Message;
@@ -44,26 +45,28 @@ public class MessageDispatcher {
                 result = this.fileDownloadEvent.fire(message);
                 // /static/upload/0/20200412/20200412165827.jpg
                 String downloadImagePath = result.getDownloadImagePath();
-                downloadImagePath = downloadImagePath.replace(message.getLinkDir(), message.getFileDir());
+                if(StringUtils.isEmpty(downloadImagePath)) {
+                    ctx.close();
+                } else {
+                    downloadImagePath = downloadImagePath.replace(message.getLinkDir(), message.getFileDir());
 
-                log.debug("downloadImagePath: {}", downloadImagePath);
+                    log.debug("downloadImagePath: {}", downloadImagePath);
 
-                final RandomAccessFile raf = new RandomAccessFile(downloadImagePath, "r");
-                final ChunkedFile chunkedFile = new ChunkedFile(raf);
-                ctx.writeAndFlush(chunkedFile).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        try {
-                            chunkedFile.close();
-                            raf.close();
-                        } catch (Exception e) {
-                            // ignore
+                    final RandomAccessFile raf = new RandomAccessFile(downloadImagePath, "r");
+                    final ChunkedFile chunkedFile = new ChunkedFile(raf);
+                    ctx.writeAndFlush(chunkedFile).addListener(new ChannelFutureListener() {
+                        @Override
+                        public void operationComplete(ChannelFuture future) throws Exception {
+                            try {
+                                chunkedFile.close();
+                                raf.close();
+                            } catch (Exception e) {
+                                // ignore
+                            }
+                            ctx.close();
                         }
-                        ctx.close();
-                    }
-                });
-
-
+                    });
+                }
                 break;
             default:
                 break;
