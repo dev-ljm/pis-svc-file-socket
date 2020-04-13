@@ -48,24 +48,30 @@ public class MessageDispatcher {
                 if(StringUtils.isEmpty(downloadImagePath)) {
                     ctx.close();
                 } else {
-                    downloadImagePath = downloadImagePath.replace(message.getLinkDir(), message.getFileDir());
 
-                    log.debug("downloadImagePath: {}", downloadImagePath);
+                    try {
+                        downloadImagePath = downloadImagePath.replace(message.getLinkDir(), message.getFileDir());
 
-                    final RandomAccessFile raf = new RandomAccessFile(downloadImagePath, "r");
-                    final ChunkedFile chunkedFile = new ChunkedFile(raf);
-                    ctx.writeAndFlush(chunkedFile).addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            try {
-                                chunkedFile.close();
-                                raf.close();
-                            } catch (Exception e) {
-                                // ignore
+                        log.debug("downloadImagePath: {}", downloadImagePath);
+
+                        final RandomAccessFile raf = new RandomAccessFile(downloadImagePath, "r");
+                        final ChunkedFile chunkedFile = new ChunkedFile(raf);
+                        ctx.writeAndFlush(chunkedFile).addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(ChannelFuture future) throws Exception {
+                                try {
+                                    chunkedFile.close();
+                                    raf.close();
+                                } catch (Exception e) {
+                                    // ignore
+                                }
+                                ctx.close();
                             }
-                            ctx.close();
-                        }
-                    });
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        ctx.close();
+                    }
                 }
                 break;
             default:
