@@ -32,11 +32,12 @@ public class MessageDispatcher {
         Message result = new Message();
         switch (message.getMsgId()) {
             case "A": // 파일 업로드
+                log.debug("파일 업로드: {}", message);
                 result = this.fileUploadEvent.fire(message);
 
                 break;
             case "B": // 파일 다운로드
-
+                log.debug("파일 다운로드: {}", message);
                 // 입차중인 차량이 있다면 조회해서 응답으로 내려준다.
                 String fileDir = message.getFileDir(); // C:/works/pis/file/upload/0/20200412/
 
