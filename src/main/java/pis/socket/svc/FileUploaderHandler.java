@@ -48,9 +48,9 @@ public class FileUploaderHandler  extends ChannelInboundHandlerAdapter {
             int msgIdx = 0;
             ByteBuf carInfo = byteBuf.copy(msgIdx, copyLength);
 
-            this.msgId = carInfo.copy(msgIdx++, 1).toString(Charset.defaultCharset());
-            String flag = carInfo.copy(msgIdx++, 1).toString(Charset.defaultCharset());
-            String carNo = carInfo.copy(msgIdx++, 20).toString(Charset.defaultCharset());
+            this.msgId = carInfo.copy(msgIdx++, 1).toString(Charset.forName("UTF-8"));
+            String flag = carInfo.copy(msgIdx++, 1).toString(Charset.forName("UTF-8"));
+            String carNo = carInfo.copy(msgIdx++, 20).toString(Charset.forName("UTF-8"));
             carNo = StringUtils.deleteWhitespace((StringUtils.trimToEmpty(carNo)).replaceAll("@", "").toUpperCase());
 
             Message message = null;
