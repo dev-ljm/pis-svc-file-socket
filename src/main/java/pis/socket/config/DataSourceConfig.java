@@ -2,6 +2,9 @@ package pis.socket.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.jasypt.encryption.StringEncryptor;
+import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
+import org.jasypt.encryption.pbe.config.SimpleStringPBEConfig;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,6 +24,17 @@ import javax.sql.DataSource;
 @EnableTransactionManagement
 @MapperScan(value = "pis.socket.svc", annotationClass = MariaDB.class, sqlSessionFactoryRef = "mariaSqlSessionFactory")
 public class DataSourceConfig {
+
+    @Bean(name = "jasyptStringEncryptor")
+    public StringEncryptor jasyptStringEncryptor() {
+        PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
+        SimpleStringPBEConfig config = new SimpleStringPBEConfig();
+        config.setPassword("parkingpass2020!");
+        config.setAlgorithm("PBEWithMD5AndDES");
+        config.setPoolSize("1");
+        encryptor.setConfig(config);
+        return encryptor;
+    }
 
     @Bean(name = "mariaDataSource")
     @ConfigurationProperties("spring.datasource.maria")
