@@ -32,24 +32,25 @@ public class FileUploadEvent implements MessageEvent {
         linkName.append(imageDateDir).append("/");
         linkName.append(imageName).append(".").append(imageType);
 
-        EnteringCarDto enteringCar = EnteringCarDto.builder()
-                .car_no(car_no)
-                .station_id("")
-                .oper_area_id("")
-                .oper_zone_id("")
-                .updt_date(LocalDateTime.now())
-                .updtr_id("S05")
-                .incar_img_path(linkName.toString())
-                .build();
+        if ("2".equals(flag)) { // 입차
+            EnteringCarDto enteringCar = EnteringCarDto.builder()
+                    .car_no(car_no)
+                    .updt_date(LocalDateTime.now())
+                    .updtr_id("SYSTEM")
+                    .incar_img_path(linkName.toString())
+                    .build();
 
-        int evalDupCount = this.enteringCarService.evalDup(enteringCar);
-        log.debug("evalDupCount: {}", evalDupCount);
-        if (evalDupCount > 0) {
+            int evalDupCount = this.enteringCarService.evalDup(enteringCar);
+            log.debug("evalDupCount: {}", evalDupCount);
+            if (evalDupCount > 0) {
 
-            int successfulCount = this.enteringCarService.updateCarImage(enteringCar);
-            log.debug("successfulCount: {}", successfulCount);
+                int successfulCount = this.enteringCarService.updateCarImage(enteringCar);
+                log.debug("successfulCount: {}", successfulCount);
+            }
+        } else { // 출차
+
+
         }
-
         return message;
     }
 }
