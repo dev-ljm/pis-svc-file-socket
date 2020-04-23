@@ -40,6 +40,7 @@ public class FileUploaderHandler  extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ByteBuf byteBuf = (ByteBuf) msg;
+        log.debug("channelRead's byteBuf: {}", byteBuf);
 
         Channel channel = ctx.channel();
         if (!channelGroup.contains(channel)) { // 초기진입
