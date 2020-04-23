@@ -54,6 +54,10 @@ public class FileUploaderHandler  extends ChannelInboundHandlerAdapter {
             String carNo = carInfo.copy(msgIdx++, 20).toString(Charset.defaultCharset());
             carNo = StringUtils.deleteWhitespace((StringUtils.trimToEmpty(carNo)).replaceAll("@", "").toUpperCase());
 
+            log.debug("this.msgId: {}", this.msgId);
+            log.debug("flag: {}", flag);
+            log.debug("carNo: {}", carNo);
+
             Message message = null;
             if("A".equals(this.msgId)) {
                 // 입차 이미지파일
