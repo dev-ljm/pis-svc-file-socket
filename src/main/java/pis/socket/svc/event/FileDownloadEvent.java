@@ -17,8 +17,7 @@ public class FileDownloadEvent implements MessageEvent {
 
     @Override
     public Message fire(Message message) {
-
-        System.out.println("FileDownloadEvent fire!!!! ");
+        log.debug("FileDownloadEvent fire!!!! ");
         log.debug("message >>"+ message);
 
         String car_no = message.getCarNo();
