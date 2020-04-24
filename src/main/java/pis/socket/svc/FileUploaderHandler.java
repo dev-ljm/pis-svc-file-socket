@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
-public class FileUploaderHandler  extends ChannelInboundHandlerAdapter {
+public class FileUploaderHandler extends ChannelInboundHandlerAdapter {
 
     private CarImageDto carImage;
     private String msgId;
@@ -39,124 +39,99 @@ public class FileUploaderHandler  extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        try {
+        ByteBuf byteBuf = (ByteBuf) msg;
+        Channel channel = ctx.channel();
+        if (!channelGroup.contains(channel)) { // 초기진입
 
+            int copyLength = 22;
+            int msgIdx = 0;
+            ByteBuf carInfo = byteBuf.copy(msgIdx, copyLength);
 
-            ByteBuf byteBuf = (ByteBuf) msg;
-            log.debug("channelRead's byteBuf: {}", byteBuf);
+            this.msgId = carInfo.copy(msgIdx++, 1).toString(Charset.defaultCharset());
+            String flag = carInfo.copy(msgIdx++, 1).toString(Charset.defaultCharset());
+            String carNo = carInfo.copy(msgIdx++, 20).toString(Charset.defaultCharset());
+            carNo = StringUtils.deleteWhitespace((StringUtils.trimToEmpty(carNo)).replaceAll("@", "").toUpperCase());
 
-            Channel channel = ctx.channel();
-            if (!channelGroup.contains(channel)) { // 초기진입
+            log.debug("msgId: {}", this.msgId);
+            log.debug("flag: {}", flag);
+            log.debug("carNo: {}", carNo);
 
-                int copyLength = 22;
-                int msgIdx = 0;
-                ByteBuf carInfo = byteBuf.copy(msgIdx, copyLength);
+            Message message = null;
+            if ("A".equals(this.msgId)) {
+                // 입차 이미지파일
+                LocalDateTime currentLocalDateTime = LocalDateTime.now();
+                String imageName = currentLocalDateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 
-                this.msgId = carInfo.copy(msgIdx++, 1).toString(Charset.defaultCharset());
-                String flag = carInfo.copy(msgIdx++, 1).toString(Charset.defaultCharset());
-                String carNo = carInfo.copy(msgIdx++, 20).toString(Charset.defaultCharset());
-                carNo = StringUtils.deleteWhitespace((StringUtils.trimToEmpty(carNo)).replaceAll("@", "").toUpperCase());
+                LocalDate currentLocalDate = LocalDate.now();
+                String imageDateDir = currentLocalDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-                log.debug("this.msgId: {}", this.msgId);
-                log.debug("flag: {}", flag);
-                log.debug("carNo: {}", carNo);
+                // 차량번호로 입차정보를
+                StringBuilder tempImageDir = new StringBuilder(this.carImage.getFileDir());
+                tempImageDir.append(flag).append("/");
+                tempImageDir.append(imageDateDir).append("/");
+                String imageDir = tempImageDir.toString();
 
-                Message message = null;
-                if("A".equals(this.msgId)) {
-                    // 입차 이미지파일
-                    LocalDateTime currentLocalDateTime = LocalDateTime.now();
-                    String imageName = currentLocalDateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-                    log.debug("imageName: {}", imageName);
-
-                    LocalDate currentLocalDate = LocalDate.now();
-                    String imageDateDir = currentLocalDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-                    log.debug("imageDateDir: {}", imageDateDir);
-
-                    // 차량번호로 입차정보를
-                    StringBuilder tempImageDir = new StringBuilder(this.carImage.getFileDir());
-                    tempImageDir.append(flag).append("/");
-                    tempImageDir.append(imageDateDir).append("/");
-                    String imageDir = tempImageDir.toString();
-                    log.debug("imageDir: {}", imageDir);
-
-                    File fileDir = new File(imageDir.toString());
-                    if (!fileDir.exists()) {
-                        fileDir.mkdir();
-                    }
-                    log.debug("step: !!!!!fdf");
-
-                    String fileName = imageDir + imageName + "." + this.carImage.getFileType();
-                    log.debug("fileName: {}", fileName);
-
-
-                    this.file = new File(fileName);
-                    if (!this.file.exists()) {
-                        this.file.createNewFile();
-                    }
-
-
-                    log.debug("step: 4");
-
-
-                    message = Message.builder()
-                            .msgId(this.msgId)
-                            .flag(flag)
-                            .carNo(carNo)
-                            .imageName(imageName)
-                            .imageDateDir(imageDateDir)
-                            .fileDir(this.carImage.getFileDir())
-                            .linkDir(this.carImage.getLinkDir())
-                            .imageType(this.carImage.getFileType())
-                            .build();
-
-                    log.debug("step: 5");
-
-                    byteBuf.skipBytes(copyLength);
-                    log.debug("step: 6");
-
-                } else {
-                    message = Message.builder()
-                            .msgId(this.msgId)
-                            .flag(flag)
-                            .carNo(carNo)
-                            .fileDir(this.carImage.getFileDir())
-                            .linkDir(this.carImage.getLinkDir())
-                            .build();
+                File fileDir = new File(imageDir.toString());
+                if (!fileDir.exists()) {
+                    fileDir.mkdir();
                 }
 
-                log.debug("step: 7");
+                String fileName = imageDir + imageName + "." + this.carImage.getFileType();
 
-                // 비동기 호출
-                this.messageDispatcher.dispatch(ctx, message);
+                this.file = new File(fileName);
+                if (!this.file.exists()) {
+                    this.file.createNewFile();
+                }
 
-                channelGroup.add(channel);
+                message = Message.builder()
+                        .msgId(this.msgId)
+                        .flag(flag)
+                        .carNo(carNo)
+                        .imageName(imageName)
+                        .imageDateDir(imageDateDir)
+                        .fileDir(this.carImage.getFileDir())
+                        .linkDir(this.carImage.getLinkDir())
+                        .imageType(this.carImage.getFileType())
+                        .build();
+
+                byteBuf.skipBytes(copyLength);
+
             } else {
-
-                if("A".equals(this.msgId)) {
-                    // 파일 업로드 전문인 경우!
-
-                    RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "rw");
-                    FileChannel fileChannel = randomAccessFile.getChannel();
-
-                    ByteBuffer byteBuffer = byteBuf.nioBuffer();
-                    while (byteBuffer.hasRemaining()) {
-                        fileChannel.position(this.file.length());
-                        fileChannel.write(byteBuffer);
-                    }
-
-                    byteBuf.release();
-                    fileChannel.close();
-                    randomAccessFile.close();
-                } else if("B".equals(this.msgId)) {
-                    // ignore!!
-                    log.debug("ignore!!");
-                }
-
-
+                message = Message.builder()
+                        .msgId(this.msgId)
+                        .flag(flag)
+                        .carNo(carNo)
+                        .fileDir(this.carImage.getFileDir())
+                        .linkDir(this.carImage.getLinkDir())
+                        .build();
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+            // 비동기 호출
+            this.messageDispatcher.dispatch(ctx, message);
+
+            channelGroup.add(channel);
+        } else {
+
+            if ("A".equals(this.msgId)) {
+                // 파일 업로드 전문인 경우!
+
+                RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "rw");
+                FileChannel fileChannel = randomAccessFile.getChannel();
+
+                ByteBuffer byteBuffer = byteBuf.nioBuffer();
+                while (byteBuffer.hasRemaining()) {
+                    fileChannel.position(this.file.length());
+                    fileChannel.write(byteBuffer);
+                }
+
+                byteBuf.release();
+                fileChannel.close();
+                randomAccessFile.close();
+            } else if ("B".equals(this.msgId)) {
+                // ignore!!
+                log.debug("ignore!!");
+            }
+
         }
 
     }
