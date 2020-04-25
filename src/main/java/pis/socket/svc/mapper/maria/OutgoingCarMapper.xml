@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pis.socket.svc.mapper.OutgoingCarMapper">
+
+    <update id="updateCarImage" parameterType="pis.socket.svc.dto.OutgoingCarDto">
+        UPDATE PISDS.OUTCAR
+           SET OUTCAR_IMG_PATH = #{outcar_img_path}
+            , UPDT_DATE = #{updt_date}
+            , UPDTR_ID = #{updtr_id}
+        WHERE 1 = 1
+        AND OUTCAR_SEQ = (
+            SELECT OC.OUTCAR_SEQ
+            FROM PISDS.INCAR IC
+                     JOIN PISDS.OUTCAR OC ON IC.INCAR_SEQ = OC.INCAR_SEQ
+            WHERE 1 = 1
+              AND IC.CAR_NO = #{car_no}
+            ORDER BY OC.OUTCAR_SEQ DESC
+            LIMIT 1
+        )
+    </update>
+
+
+
+
+</mapper>
